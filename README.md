@@ -83,3 +83,9 @@ Index   Label
  13     Unit UUID
  14     Quality UUID            - ! UUID of the quantity (flow property)
 ```
+
+## License
+This project is in the worldwide public domain, released under the
+[CC0 1.0 Universal Public Domain Dedication License](https://creativecommons.org/publicdomain/zero/1.0/).
+
+![Public Domain Dedication](https://licensebuttons.net/p/zero/1.0/88x31.png)

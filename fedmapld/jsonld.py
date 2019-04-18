@@ -1,5 +1,6 @@
 
 import os
+import datetime
 import logging as log
 
 import fedelemflowlist as fedfl
@@ -12,6 +13,7 @@ class Writer(object):
 
     def __init__(self, version="0.1", flow_list: pd.DataFrame = None,
                  flow_mapping: pd.DataFrame = None):
+        self.version = version
 
         if flow_list is None:
             self.flow_list = fedfl.get_flowlist(version)  # type: pd.DataFrame
@@ -26,10 +28,12 @@ class Writer(object):
 
     def write_to(self, path: str):
         if os.path.exists(path):
+            log.warning("File %s already exists and will be overwritten", path)
             os.remove(path)
         pw = pack.Writer(path)
         self._write_top_categories(pw)
         self._write_flow_compartments(pw)
+        self._write_flows(pw)
         pw.close()
 
     def _write_top_categories(self, pw: pack.Writer):
@@ -58,14 +62,13 @@ class Writer(object):
 
     def _write_flow_compartments(self, pw: pack.Writer):
         handled = set()
-        i = 0
         for _, row in self.flow_list.iterrows():
-            uid = row[12]
+            uid = row["Compartment UUID"]
             if uid in handled:
                 continue
             handled.add(uid)
             parent_uid = None
-            direction = row[6].strip()
+            direction = row["Directionality"].strip()
             if direction == "resource":
                 parent_uid = "3095c63c-7962-4086-a0d7-df4fd38c2e68"
             elif direction == "emission":
@@ -75,10 +78,38 @@ class Writer(object):
                 continue
             comp = olca.Category()
             comp.id = uid
-            comp.name = row[7]
+            comp.name = row["Compartment"]
             comp.model_type = olca.ModelType.FLOW
             comp.category = olca.ref(olca.Category, parent_uid)
             pw.write(comp)
 
     def _write_flows(self, pw: pack.Writer):
-        pass
+        for _, row in self.flow_list.iterrows():
+            flow = olca.Flow()
+
+            description = "From FedElemFlowList_%s." % self.version
+            flow_class = row.get("Class")
+            if flow_class is not None:
+                description += " Flow Class: %s." % flow_class
+
+            preferred = row.get("Preferred", 0)
+            if preferred == 1 or preferred == "1":
+                description += " Preferred flow."
+            else:
+                description += " Not a preferred flow."
+
+            flow.id = row["Flow UUID"]
+            flow.name = row["Flowable"]
+            flow.cas = row.get("CAS No", None)
+            flow.formula = row.get("Formula", None)
+            flow.version = self.version
+            flow.last_change = datetime.datetime.now().isoformat()
+            flow.category = olca.ref(olca.Category, row["Compartment UUID"])
+            flow.flow_type = olca.FlowType.ELEMENTARY_FLOW
+            fp = olca.FlowPropertyFactor()
+            fp.reference_flow_property = True
+            fp.conversion_factor = 1.0
+            fp.flow_property = olca.ref(
+                olca.FlowProperty, row["Quality UUID"])
+            flow.flow_properties = [fp]
+            pw.write(flow)
