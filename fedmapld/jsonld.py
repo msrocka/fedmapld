@@ -65,6 +65,73 @@ def _s(val) -> str:
     return str(val).strip()
 
 
+class _MapFlow(object):
+
+    def __init__(self):
+        self.name = None      # type: str
+        self.uid = None       # type: str
+        self.category = None  # type: str
+        self.property = None  # type: str
+        self.unit = None      # type: str
+
+    def to_json(self) -> dict:
+        flow_ref = olca.FlowRef()
+        flow_ref.name = self.name
+        if self.category is not None:
+            flow_ref.category_path = self.category.split('/')
+        if self.uid is None:
+            flow_ref.id = _uid(olca.ModelType.FLOW,
+                               self.category, self.name)
+        else:
+            flow_ref.id = self.uid
+        return {
+            'flow': flow_ref.to_json()
+        }
+
+
+class _MapEntry(object):
+    """ Describes a mapping entry in the Fed.LCA flow list. """
+
+    def __init__(self, row):
+
+        self.source_list = _s(row['SourceListName'])
+
+        # source flow attributes
+        s_flow = _MapFlow()
+        self.source_flow = s_flow
+        s_flow.name = _s(row['SourceFlowName'])
+        s_flow.uid = _s(row['SourceFlowUUID'])
+        s_flow.category = _catpath(row['SourceFlowCategory1'],
+                                   row['SourceFlowCategory2'],
+                                   row['SourceFlowCategory3'])
+        s_flow.property = _s(row['SourceProperty'])
+        s_flow.unit = _s(row['SourceUnit'])
+
+        # traget flow attributs
+        t_flow = _MapFlow()
+        self.target_flow = t_flow
+        t_flow.name = _s(row['TargetFlowName'])
+        t_flow.uid = _s(row['TargetFlowUUID'])
+        t_flow.category = _catpath(row['TargetFlowCategory1'],
+                                   row['TargetFlowCategory2'],
+                                   row['TargetFlowCategory3'])
+        t_flow.property = _s(row['TargetProperty'])
+        t_flow.unit = _s(row['TargetUnit'])
+
+        factor = row['ConversionFactor']
+        if _isnum(factor):
+            self.factor = factor
+        else:
+            self.factor = 1.0
+
+    def to_json(self) -> dict:
+        return {
+            'from': self.source_flow.to_json(),
+            'to': self.target_flow.to_json(),
+            'conversionFactor': self.factor,
+        }
+
+
 class Writer(object):
 
     def __init__(self, version="0.1", flow_list: pd.DataFrame = None,
@@ -172,5 +239,27 @@ class Writer(object):
             flow.flow_properties = [fp]
             pw.write(flow)
 
-    def _write_mappings(self):
-        pass
+    def _write_mappings(self, pw: pack.Writer):
+        maps = {}
+        for i, row in self.flow_mapping.iterrows():
+            me = _MapEntry(row)
+            m = maps.get(me.source_list)
+            if m is None:
+                m = []
+                maps[me.source_list] = m
+            m.append(me)
+
+        for source_list, entries in maps.items():
+            list_ref = olca.Ref()
+            list_ref.olca_type = 'FlowMap'
+            list_ref.name = source_list
+            mappings = []
+            flow_map = {
+                '@id': str(uuid.uuid4()),
+                'name': '%s -> Fed.LCA Commons' % source_list,
+                'source': list_ref.to_json(),
+                'mappings': mappings
+            }
+            for e in entries:
+                mappings.append(e.to_json())
+            pw.write_json(flow_map, 'flow_mappings')
