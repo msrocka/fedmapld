@@ -17,8 +17,9 @@ python -m venv env
 ./env/Scripts/activate
 pip install -r requirements.txt
 
-# install the current version of the Fed.LCA Flow-List
-pip install git+https://github.com/USEPA/Federal-LCA-Commons-Elementary-Flow-List.git@master
+# install the branch `flowmappingforolca` from the
+# Fed.LCA Flow-List list repository
+pip install git+https://github.com/USEPA/Federal-LCA-Commons-Elementary-Flow-List.git@flowmappingforolca
 
 # install this module
 pip install -e .
@@ -83,6 +84,37 @@ Index   Label
  13     Unit UUID
  14     Quality UUID            - ! UUID of the quantity (flow property)
 ```
+
+The mapping data frame should have the following columns:
+
+```
+SourceListName
+SourceListVersion
+SourceFlowName
+SourceFlowUUID
+SourceFlowCategory1
+SourceFlowCategory2
+SourceFlowCategory3
+SourceProperty
+SourcePropertyID
+SourceUnit
+SourceUnitID
+MatchCondition
+ConversionFactor
+TargetFlowName
+TargetFlowUUID
+TargetFlowCategory1
+TargetFlowCategory2
+TargetFlowCategory3
+TargetProperty
+TargetPropertyID
+TargetUnit
+TargetUnitID
+Mapper
+Verifier
+LastUpdated
+```
+
 
 ## License
 This project is in the worldwide public domain, released under the

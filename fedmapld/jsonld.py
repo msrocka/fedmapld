@@ -1,12 +1,68 @@
 
-import os
 import datetime
+import json
 import logging as log
+import math
+import os
+import uuid
 
 import fedelemflowlist as fedfl
 import pandas as pd
 import olca
 import olca.pack as pack
+
+
+def _uid(*args) -> str:
+    """A helper function that creates a name based UUID. """
+    path = '/'.join([str(arg).strip() for arg in args]).lower()
+    return str(uuid.uuid3(uuid.NAMESPACE_OID, path))
+
+
+def _isnil(val) -> bool:
+    """Returns True when the given value is `None`, `NaN`, or `""`."""
+    if val is None:
+        return True
+    if isinstance(val, float):
+        return math.isnan(val)
+    if isinstance(val, str):
+        return val.strip() == ""
+    return False
+
+
+def _isnum(val) -> bool:
+    """Returns true when the given value is a number."""
+    if isinstance(val, (float, int)):
+        return not math.isnan(val)
+    return False
+
+
+def _catpath(*args) -> str:
+    p = ''
+    for arg in args:
+        if _isnil(arg):
+            continue
+        if p != '':
+            p = p + "/"
+        p = p + str(arg).strip()
+
+    if p == 'air':
+        return 'Elementary flows/emission/air'
+    if p == 'ground':
+        return 'Elementary flows/resource/ground'
+    if p == 'soil':
+        return 'Elementary flows/emission/soil'
+    if p == 'water':
+        return 'Elementary flows/emission/water'
+    return p
+
+
+def _s(val) -> str:
+    """Returns the string value of the given value or None if the value is
+       `None`, `NaN`, or `""`.
+    """
+    if _isnil(val):
+        return None
+    return str(val).strip()
 
 
 class Writer(object):
@@ -34,6 +90,7 @@ class Writer(object):
         self._write_top_categories(pw)
         self._write_flow_compartments(pw)
         self._write_flows(pw)
+        self._write_mappings(pw)
         pw.close()
 
     def _write_top_categories(self, pw: pack.Writer):
@@ -85,7 +142,6 @@ class Writer(object):
 
     def _write_flows(self, pw: pack.Writer):
         for _, row in self.flow_list.iterrows():
-            flow = olca.Flow()
 
             description = "From FedElemFlowList_%s." % self.version
             flow_class = row.get("Class")
@@ -98,6 +154,8 @@ class Writer(object):
             else:
                 description += " Not a preferred flow."
 
+            flow = olca.Flow()
+            flow.description = description
             flow.id = row["Flow UUID"]
             flow.name = row["Flowable"]
             flow.cas = row.get("CAS No", None)
@@ -113,3 +171,6 @@ class Writer(object):
                 olca.FlowProperty, row["Quality UUID"])
             flow.flow_properties = [fp]
             pw.write(flow)
+
+    def _write_mappings(self):
+        pass
