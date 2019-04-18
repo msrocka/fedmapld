@@ -60,3 +60,26 @@ resulting zip file as argument:
 ```python
 >>> writer.write_to("path/to/file.zip")
 ```
+
+## Data format
+The flow list is a pandas data frame with the following columns:
+
+```
+Index   Label
+-----   -------------------
+  0     Flowable                - the flow name
+  1     CAS No                  - CAS number
+  2     Formula                 - chemical formula
+  3     Synonyms                - flow synonyms
+  4     Flow quality            - ! the reference *quantity* (e.g. Energy, Mass)
+  5     Unit                    - the reference unit
+  6     Directionality          - resource | emission
+  7     Compartment             - air | ground | water ...
+  8     External reference      - e.g. a web link
+  9     Preferred               - 1 | 0
+ 10     Class                   - Energy | Fuel | ...
+ 11     Flow UUID
+ 12     Compartment UUID
+ 13     Unit UUID
+ 14     Quality UUID            - ! UUID of the quantity (flow property)
+```

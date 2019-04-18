@@ -1,4 +1,7 @@
 
+import os
+import logging as log
+
 import fedelemflowlist as fedfl
 import pandas as pd
 import olca
@@ -22,11 +25,14 @@ class Writer(object):
             self.flow_mapping = flow_mapping
 
     def write_to(self, path: str):
+        if os.path.exists(path):
+            os.remove(path)
         pw = pack.Writer(path)
-        self._write_categories(pw)
+        self._write_top_categories(pw)
+        self._write_flow_compartments(pw)
         pw.close()
 
-    def _write_categories(self, pw: pack.Writer):
+    def _write_top_categories(self, pw: pack.Writer):
         # elementary flows
         root = olca.Category()
         root.id = "f318fa60-bae9-361f-ad5a-5066a0e2a9d1"
@@ -49,3 +55,30 @@ class Writer(object):
         emi.category = olca.ref(olca.Category, root.id)
         emi.model_type = olca.ModelType.FLOW
         pw.write(emi)
+
+    def _write_flow_compartments(self, pw: pack.Writer):
+        handled = set()
+        i = 0
+        for _, row in self.flow_list.iterrows():
+            uid = row[12]
+            if uid in handled:
+                continue
+            handled.add(uid)
+            parent_uid = None
+            direction = row[6].strip()
+            if direction == "resource":
+                parent_uid = "3095c63c-7962-4086-a0d7-df4fd38c2e68"
+            elif direction == "emission":
+                parent_uid = "c2433915-9ca3-3933-a64d-68d67e3e3281"
+            else:
+                log.error("Unknown directionality: %s", direction)
+                continue
+            comp = olca.Category()
+            comp.id = uid
+            comp.name = row[7]
+            comp.model_type = olca.ModelType.FLOW
+            comp.category = olca.ref(olca.Category, parent_uid)
+            pw.write(comp)
+
+    def _write_flows(self, pw: pack.Writer):
+        pass
