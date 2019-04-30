@@ -75,18 +75,40 @@ class _MapFlow(object):
         self.unit = None      # type: str
 
     def to_json(self) -> dict:
+        json = {}
         flow_ref = olca.FlowRef()
         flow_ref.name = self.name
         if self.category is not None:
             flow_ref.category_path = self.category.split('/')
+
+        # set the UUID or generate it from the attributes
         if self.uid is None:
             flow_ref.id = _uid(olca.ModelType.FLOW,
                                self.category, self.name)
         else:
             flow_ref.id = self.uid
-        return {
-            'flow': flow_ref.to_json()
-        }
+
+        json['flow'] = flow_ref.to_json()
+
+        if self.unit == 'kg' or (
+                _isnil(self.unit) and self.property == 'mass'):
+            json['unit'] = olca.ref(
+                olca.Unit,
+                '20aadc24-a391-41cf-b340-3e4529f44bde',
+                'kg').to_json()
+            json['flowProperty'] = olca.ref(
+                olca.FlowProperty,
+                '93a60a56-a3c8-11da-a746-0800200b9a66',
+                'Mass'
+            ).to_json()
+        else:
+            if not _isnil(self.unit):
+                log.warning('unknown unit %s', self.unit)
+            elif not _isnil(self.property):
+                log.warning('unknown property %s', self.property)
+            else:
+                log.warning('no unit or flow property for flow %s', self.name)
+        return json
 
 
 class _MapEntry(object):
