@@ -79,6 +79,8 @@ class _MapFlow(object):
         flow_ref.name = self.name
         if self.category is not None:
             flow_ref.category_path = self.category.split('/')
+
+        # set the UUID or generate it from the attributes
         if self.uid is None:
             flow_ref.id = _uid(olca.ModelType.FLOW,
                                self.category, self.name)
