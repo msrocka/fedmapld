@@ -1,6 +1,4 @@
-
 import datetime
-import json
 import logging as log
 import math
 import os
@@ -9,7 +7,10 @@ import uuid
 import fedelemflowlist as fedfl
 import pandas as pd
 import olca
+import olca.units as units
 import olca.pack as pack
+
+from typing import Optional
 
 
 def _uid(*args) -> str:
@@ -56,7 +57,7 @@ def _catpath(*args) -> str:
     return p
 
 
-def _s(val) -> str:
+def _s(val) -> Optional[str]:
     """Returns the string value of the given value or None if the value is
        `None`, `NaN`, or `""`.
     """
@@ -68,11 +69,10 @@ def _s(val) -> str:
 class _MapFlow(object):
 
     def __init__(self):
-        self.name = None      # type: str
-        self.uid = None       # type: str
-        self.category = None  # type: str
-        self.property = None  # type: str
-        self.unit = None      # type: str
+        self.name = None  # type: Optional[str]
+        self.uid = None  # type: Optional[str]
+        self.category = None  # type: Optional[str]
+        self.unit = None  # type: Optional[str]
 
     def to_json(self) -> dict:
         flow_ref = olca.FlowRef()
@@ -84,9 +84,19 @@ class _MapFlow(object):
                                self.category, self.name)
         else:
             flow_ref.id = self.uid
-        return {
+
+        json = {
             'flow': flow_ref.to_json()
         }
+        if self.unit is not None:
+            unit_ref = units.unit_ref(self.unit)
+            if unit_ref is not None:
+                json['unit'] = unit_ref.to_json()
+            prop_ref = units.property_ref(self.unit)
+            if prop_ref is not None:
+                json['flowProperty'] = prop_ref.to_json()
+
+        return json
 
 
 class _MapEntry(object):
@@ -101,10 +111,7 @@ class _MapEntry(object):
         self.source_flow = s_flow
         s_flow.name = _s(row['SourceFlowName'])
         s_flow.uid = _s(row['SourceFlowUUID'])
-        s_flow.category = _catpath(row['SourceFlowCategory1'],
-                                   row['SourceFlowCategory2'],
-                                   row['SourceFlowCategory3'])
-        s_flow.property = _s(row['SourceProperty'])
+        s_flow.category = _catpath(row['SourceFlowContext'])
         s_flow.unit = _s(row['SourceUnit'])
 
         # traget flow attributs
@@ -112,10 +119,7 @@ class _MapEntry(object):
         self.target_flow = t_flow
         t_flow.name = _s(row['TargetFlowName'])
         t_flow.uid = _s(row['TargetFlowUUID'])
-        t_flow.category = _catpath(row['TargetFlowCategory1'],
-                                   row['TargetFlowCategory2'],
-                                   row['TargetFlowCategory3'])
-        t_flow.property = _s(row['TargetProperty'])
+        t_flow.category = _catpath(row['TargetFlowContext'])
         t_flow.unit = _s(row['TargetUnit'])
 
         factor = row['ConversionFactor']

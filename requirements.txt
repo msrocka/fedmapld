@@ -1,2 +1,2 @@
-olca-ipc==0.0.7
+olca-ipc==0.0.8
 pandas==0.24.2

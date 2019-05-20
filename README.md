@@ -85,36 +85,26 @@ Index   Label
  14     Quality UUID            - ! UUID of the quantity (flow property)
 ```
 
-The mapping data frame should have the following columns:
+The mapping data frame should have the
+[following columns](https://github.com/USEPA/Federal-LCA-Commons-Elementary-Flow-List/blob/master/format%20specs/FlowMapping.md):
 
 ```
-SourceListName
-SourceListVersion
-SourceFlowName
-SourceFlowUUID
-SourceFlowCategory1
-SourceFlowCategory2
-SourceFlowCategory3
-SourceProperty
-SourcePropertyID
-SourceUnit
-SourceUnitID
-MatchCondition
-ConversionFactor
-TargetFlowName
-TargetFlowUUID
-TargetFlowCategory1
-TargetFlowCategory2
-TargetFlowCategory3
-TargetProperty
-TargetPropertyID
-TargetUnit
-TargetUnitID
-Mapper
-Verifier
-LastUpdated
+ 0  SourceListName
+ 1  SourceListVersion
+ 2  SourceFlowName
+ 3  SourceFlowUUID
+ 4  SourceFlowContext
+ 5  SourceUnit
+ 6  MatchCondition
+ 7  ConversionFactor
+ 8  TargetFlowName
+ 9  TargetFlowUUID
+10  TargetFlowContext
+11  TargetUnit
+12  Mapper
+13  Verifier
+14  LastUpdated
 ```
-
 
 ## License
 This project is in the worldwide public domain, released under the
